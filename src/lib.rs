@@ -17,8 +17,16 @@
 #![doc(html_root_url = "https://docs.rs/num-complex/0.2")]
 #![no_std]
 
-#[cfg(any(test, feature = "std"))]
-#[cfg_attr(test, macro_use)]
+//#![cfg_attr(all(feature = "mesalock_sgx", not(target_env = "sgx")), no_std)]
+#![cfg_attr(all(target_env = "sgx", target_vendor = "mesalock"), feature(rustc_private))]
+#[cfg(all(feature = "std",
+          all(feature = "mesalock_sgx", not(target_env = "sgx"))))]
+extern crate sgx_tstd as std;
+
+//#[cfg(any(test, feature = "std"))]
+//#[cfg_attr(test, macro_use)]
+//extern crate std;
+#[cfg(all(target_env = "sgx", feature = "std"))]
 extern crate std;
 
 extern crate num_traits as traits;
@@ -1494,6 +1502,7 @@ impl<E> ParseComplexError<E> {
 
 #[cfg(feature = "std")]
 impl<E: Error> Error for ParseComplexError<E> {
+    #[allow(deprecated)]
     fn description(&self) -> &str {
         match self.kind {
             ComplexErrorKind::ParseError(ref e) => e.description(),
