@@ -17,8 +17,16 @@
 #![doc(html_root_url = "https://docs.rs/num-complex/0.2")]
 #![no_std]
 
-#[cfg(any(test, feature = "std"))]
-#[cfg_attr(test, macro_use)]
+//#![cfg_attr(all(feature = "mesalock_sgx", not(target_env = "sgx")), no_std)]
+#![cfg_attr(all(target_env = "sgx", target_vendor = "mesalock"), feature(rustc_private))]
+#[cfg(all(feature = "std",
+          all(feature = "mesalock_sgx", not(target_env = "sgx"))))]
+extern crate sgx_tstd as std;
+
+//#[cfg(any(test, feature = "std"))]
+//#[cfg_attr(test, macro_use)]
+//extern crate std;
+#[cfg(all(target_env = "sgx", feature = "std"))]
 extern crate std;
 
 extern crate num_traits as traits;
@@ -1362,7 +1370,7 @@ where
     }
 
     // parse re
-    let re = try!(from(re).map_err(ParseComplexError::from_error));
+    let re = from(re).map_err(ParseComplexError::from_error)?;
     let re = if neg_re { T::zero() - re } else { re };
 
     // pop imaginary unit off
@@ -1375,7 +1383,7 @@ where
     }
 
     // parse im
-    let im = try!(from(im).map_err(ParseComplexError::from_error));
+    let im = from(im).map_err(ParseComplexError::from_error)?;
     let im = if neg_im { T::zero() - im } else { im };
 
     Ok(Complex::new(re, im))
@@ -1462,7 +1470,7 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let (re, im) = try!(serde::Deserialize::deserialize(deserializer));
+        let (re, im) = serde::Deserialize::deserialize(deserializer)?;
         Ok(Self::new(re, im))
     }
 }
@@ -1494,6 +1502,7 @@ impl<E> ParseComplexError<E> {
 
 #[cfg(feature = "std")]
 impl<E: Error> Error for ParseComplexError<E> {
+    #[allow(deprecated)]
     fn description(&self) -> &str {
         match self.kind {
             ComplexErrorKind::ParseError(ref e) => e.description(),
